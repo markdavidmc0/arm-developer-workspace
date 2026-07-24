@@ -1,0 +1,147 @@
+name: Arm M2M Workload Benchmark & Optimization Pipeline
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'workloads/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'workloads/**'
+
+jobs:
+  benchmark:
+    name: M2M Tool Discovery & Workload Benchmark
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repository History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Step A - Auto-Discover & Register MCP Tools
+        env:
+          ARM_M2M_API_KEY: ${{ secrets.ARM_M2M_API_KEY }}
+          PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
+        run: |
+          echo "Executing Zero-Manifest Tool Auto-Discovery..."
+          MOCK_FLAG=""
+          if [ -z "$ARM_M2M_API_KEY" ]; then
+            echo "Notice: ARM_M2M_API_KEY secret is not set (e.g. Fork PR or dry-run). Running tool discovery in mock mode."
+            MOCK_FLAG="--mock"
+          fi
+
+          python3 scripts/ci_auto_discover_tools.py $MOCK_FLAG
+
+      - name: Step B - Detect Changed Workload Targets
+        id: detect-workloads
+        run: |
+          # Use event-aware git diff logic to avoid bad revision errors on push
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_REF="origin/${{ github.base_ref }}"
+            echo "Comparing HEAD against Pull Request Base: $BASE_REF"
+            CHANGED_FILES=$(git diff --name-only "$BASE_REF" HEAD | grep '^workloads/' || true)
+          else
+            echo "Comparing HEAD against previous commit on main"
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep '^workloads/' || true)
+          fi
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No workload files modified."
+            echo "changed_dirs=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Extract unique top-level workload target directories
+          DIRS=$(echo "$CHANGED_FILES" | cut -d/ -f1-3 | sort -u | tr '\n' ' ')
+          echo "Detected modified workload directories: $DIRS"
+          echo "changed_dirs=$DIRS" >> $GITHUB_OUTPUT
+
+      - name: Step C - Execute M2M Benchmark Client
+        if: ${{ steps.detect-workloads.outputs.changed_dirs != '' }}
+        env:
+          ARM_M2M_API_KEY: ${{ secrets.ARM_M2M_API_KEY }}
+          PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
+        run: |
+          mkdir -p reports
+          COMBINED_REPORT="reports/combined_report.md"
+          echo "<!-- arm-mcp-benchmark-marker -->" > "$COMBINED_REPORT"
+          echo "# 🦾 Arm M2M CI/CD Benchmark & Optimization Report" >> "$COMBINED_REPORT"
+          echo "" >> "$COMBINED_REPORT"
+
+          MOCK_FLAG=""
+          if [ -z "$ARM_M2M_API_KEY" ]; then
+            echo "Notice: ARM_M2M_API_KEY is missing. Defaulting benchmark execution to mock mode."
+            MOCK_FLAG="--mock"
+            echo "> ⚠️ **Notice:** Secrets are restricted on fork PRs or missing. Running in mock/dry-run mode." >> "$COMBINED_REPORT"
+            echo "" >> "$COMBINED_REPORT"
+          fi
+
+          for WORKLOAD_DIR in ${{ steps.detect-workloads.outputs.changed_dirs }}; do
+            if [ -d "$WORKLOAD_DIR" ]; then
+              echo "Executing M2M Benchmark for $WORKLOAD_DIR..."
+              REPORT_FILE="reports/report_$(basename $WORKLOAD_DIR).md"
+              
+              python3 scripts/ci_mcp_client.py \
+                --workload-path "$WORKLOAD_DIR" \
+                --output-report "$REPORT_FILE" \
+                $MOCK_FLAG
+
+              if [ -f "$REPORT_FILE" ]; then
+                cat "$REPORT_FILE" >> "$COMBINED_REPORT"
+                echo -e "\n\n---\n" >> "$COMBINED_REPORT"
+              fi
+            fi
+          done
+
+      - name: Step D - Post or Update Sticky PR Comment
+        if: ${{ github.event_name == 'pull_request' && steps.detect-workloads.outputs.changed_dirs != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const reportPath = 'reports/combined_report.md';
+            if (!fs.existsSync(reportPath)) {
+              console.log('No report file found to comment.');
+              return;
+            }
+            const body = fs.readFileSync(reportPath, 'utf8');
+            const marker = '<!-- arm-mcp-benchmark-marker -->';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.find(comment => comment.body.includes(marker));
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body,
+              });
+              console.log(`Updated existing PR comment ID: ${existingComment.id}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+              console.log('Created new PR comment.');
+            }

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "arm-central-platform": {
+      "url": "https://mvcp-gateway.your-domain.com/mcp/sse",
+      "transport": "sse",
+      "headers": {
+        "X-Judge-API-Key": "arm-hackathon-2026-judge-access"
+      }
+    }
+  }
+}
