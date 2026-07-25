@@ -1,0 +1,9 @@
+# GitHub Codeowners Mapping for Arm MCP Domain-First Architecture
+# Primary Codeowner
+*                        @markdavidmc0
+
+# Domain Mappings
+mcp_tools/cloud_ai/      @markdavidmc0 # @Arm-Software/cloud-ai-team
+mcp_tools/mobile_ai/     @markdavidmc0 # @Arm-Software/mobile-ai-team
+mcp_tools/physical_ai/   @markdavidmc0 # @Arm-Software/physical-ai-team
+mcp_tools/security/      @markdavidmc0 # @Arm-Software/security-team

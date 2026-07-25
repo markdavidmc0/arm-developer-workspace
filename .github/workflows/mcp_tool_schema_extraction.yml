@@ -1,0 +1,86 @@
+name: MCP Tool Schema Extraction & Gateway Registration
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # STAGE 1: Parallel Build & Schema Extraction Job Matrix (Fan-Out)
+  build-and-extract-schemas:
+    name: Extract Schemas (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            output_dir: build/mcp_schemas/python
+          - language: cpp
+            output_dir: build/mcp_schemas/cpp
+          - language: rust
+            output_dir: target/mcp_schemas/rust
+          - language: go
+            output_dir: dist/mcp_schemas/go
+          - language: java
+            output_dir: build/mcp_schemas/java
+          - language: assembly
+            output_dir: build/mcp_schemas/assembly
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Extract Tool Schemas for ${{ matrix.language }}
+        run: |
+          python3 scripts/build_all_tool_schemas.py --lang ${{ matrix.language }}
+
+      - name: Upload Schema Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-schemas-${{ matrix.language }}
+          path: ${{ matrix.output_dir }}/*.json
+          retention-days: 1
+
+  # STAGE 2 & 3: Schema Aggregation & Authentic Gateway Registration (Fan-In)
+  aggregate-and-register:
+    name: Aggregate & Register Tools
+    needs: build-and-extract-schemas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download All Schema Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: extracted_schemas/
+
+      - name: Consolidate Schemas into Build Tree
+        run: |
+          mkdir -p build/mcp_schemas/ target/mcp_schemas/ dist/mcp_schemas/
+          find extracted_schemas/ -name "*.json" -exec cp {} build/mcp_schemas/ \;
+
+      - name: Run Auto-Discovery & Register Tools with Platform Gateway
+        env:
+          PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
+          ARM_M2M_API_KEY: ${{ secrets.ARM_M2M_API_KEY }}
+        run: |
+          if [ -z "$ARM_M2M_API_KEY" ]; then
+            echo "Notice: ARM_M2M_API_KEY secret not found. Running in dry-run / mock registration mode."
+            python3 scripts/ci_auto_discover_tools.py --mock
+          else
+            python3 scripts/ci_auto_discover_tools.py
+          fi

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Zero-Manifest Tool Auto-Discovery Script for Arm Developer Workspace
-Zero-dependency Python script using ast, glob, json, urllib.request, and os.
-Discovers MCP tools via:
-1. Python AST inspection (@mcp.tool(), @tool, or mcp__ prefix).
-2. Compiled language build schema sidecars (build/mcp_schemas/*.json).
+Zero-Regex Tool Auto-Discovery Script for Arm Developer Workspace
+Scans both mcp_tools/ and workloads/ directories recursively.
+Strict Architectural Directive:
+- Python (.py): Standard library ast module (ast.parse, ast.walk) only.
+- C / C++ / Rust / Go / Assembly / Java: Build artifacts / schema JSON files.
+- REGEX USAGE: ZERO.
 """
 
 import argparse
@@ -12,7 +13,6 @@ import ast
 import glob
 import json
 import os
-import re
 import sys
 import urllib.error
 import urllib.request
@@ -20,8 +20,8 @@ from pathlib import Path
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Zero-Manifest Tool Auto-Discovery Script")
-    parser.add_argument("--workload-root", default="workloads", help="Root workloads directory to scan")
+    parser = argparse.ArgumentParser(description="Zero-Regex Multi-Language Tool Auto-Discovery Script")
+    parser.add_argument("--roots", nargs="+", default=["mcp_tools", "workloads"], help="Root directories to scan")
     parser.add_argument("--endpoint-url", default=os.getenv("PLATFORM_ENDPOINT_URL", "https://mvcp-gateway.your-domain.com/api/v1/registry/register"), help="Registry registration endpoint")
     parser.add_argument("--api-key", default=os.getenv("ARM_M2M_API_KEY", ""), help="API Authorization Key")
     parser.add_argument("--mock", action="store_true", help="Force mock registration mode")
@@ -31,57 +31,56 @@ def parse_args():
 
 def normalize_domain_context(path_str: str) -> str:
     """
-    Parses directory path to extract normalized domain context.
-    e.g. 'workloads/04-physical-ai/ros2-pointcloud-voxel' -> 'physical-ai'
-    e.g. 'workloads/01-cloud-ai' -> 'cloud-ai'
+    Parses directory path using Path.parts to extract normalized domain context.
+    e.g. 'mcp_tools/cloud_ai/vllm_arm_kv...' -> 'cloud-ai'
+    e.g. 'workloads/_template/tools_example...' -> 'template'
     """
     parts = Path(path_str).parts
     for part in parts:
-        if part.startswith("workloads") or part == ".":
+        if part in (".", "mcp_tools", "workloads", "build", "target", "dist", "mcp_schemas"):
             continue
-        normalized = re.sub(r"^\d+-", "", part)
-        if normalized:
-            return normalized
+        cleaned = part.lstrip("_")
+        if "-" in cleaned:
+            prefix, rest = cleaned.split("-", 1)
+            if prefix.isdigit():
+                cleaned = rest
+        cleaned = cleaned.replace("_", "-")
+        return cleaned
     return "general"
 
 
-def extract_python_ast_tools(py_file_path: Path) -> list[dict]:
+def extract_python_tools(file_path: Path) -> list[dict]:
     """
-    Parses a Python file using AST to extract functions decorated with
-    @mcp.tool(), @tool, or prefixed with mcp__.
+    Extracts Python tools natively using standard library ast module.
+    No execution, no regex.
     """
     tools = []
     try:
-        source = py_file_path.read_text(encoding="utf-8", errors="replace")
-        tree = ast.parse(source, filename=str(py_file_path))
+        source = file_path.read_text(encoding="utf-8", errors="replace")
+        tree = ast.parse(source, filename=str(file_path))
     except Exception as e:
-        print(f"Warning: Failed to parse AST for {py_file_path}: {e}", file=sys.stderr)
+        print(f"Warning: Failed to parse AST for {file_path}: {e}", file=sys.stderr)
         return tools
 
-    domain = normalize_domain_context(str(py_file_path))
+    domain = normalize_domain_context(str(file_path))
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            is_mcp_tool = False
-            
-            # Check function prefix
-            if node.name.startswith("mcp__"):
-                is_mcp_tool = True
+            is_mcp_tool = node.name.startswith("mcp__")
 
-            # Check decorators
             for decorator in node.decorator_list:
-                dec_str = ""
+                dec_name = ""
                 if isinstance(decorator, ast.Name):
-                    dec_str = decorator.id
+                    dec_name = decorator.id
                 elif isinstance(decorator, ast.Call):
                     if isinstance(decorator.func, ast.Name):
-                        dec_str = decorator.func.id
+                        dec_name = decorator.func.id
                     elif isinstance(decorator.func, ast.Attribute):
-                        dec_str = decorator.func.attr
+                        dec_name = decorator.func.attr
                 elif isinstance(decorator, ast.Attribute):
-                    dec_str = decorator.attr
+                    dec_name = decorator.attr
 
-                if dec_str in ("tool", "mcp_tool") or "tool" in dec_str:
+                if dec_name in ("tool", "mcp", "mcp_tool", "McpTool") or "tool" in dec_name:
                     is_mcp_tool = True
                     break
 
@@ -99,80 +98,79 @@ def extract_python_ast_tools(py_file_path: Path) -> list[dict]:
                         "description": f"Parameter {arg.arg}"
                     }
 
-                tool_schema = {
+                tools.append({
                     "name": node.name,
                     "description": docstring,
                     "domain": domain,
                     "language": "python",
-                    "source_file": str(py_file_path),
+                    "source_file": str(file_path),
                     "parameters": {
                         "type": "object",
                         "properties": params
                     }
-                }
-                tools.append(tool_schema)
+                })
 
     return tools
 
 
-def scan_build_schema_sidecars(workload_root: str) -> list[dict]:
+def discover_all_tools(roots: list[str]) -> list[dict]:
     """
-    Scans build output directories for pre-emitted native MCP schema sidecars.
-    e.g. build/mcp_schemas/*.json or workloads/**/mcp_schemas/*.json
+    Two-Pass Tool Discovery Engine (Zero Regex):
+    PASS 1: Python Static AST Discovery via ast module across scan roots.
+    PASS 2: Compiled & Companion Schema Artifact Discovery (C++, Rust, Go, Java, Assembly).
     """
-    sidecar_tools = []
-    patterns = [
-        os.path.join(workload_root, "**", "mcp_schemas", "*.json"),
-        os.path.join(workload_root, "**", "build", "*.json"),
-        os.path.join("build", "mcp_schemas", "*.json"),
-        os.path.join("target", "mcp_schemas", "*.json")
-    ]
+    discovered_tools = []
+
+    # PASS 1: Python Static AST Discovery
+    for root in roots:
+        if not os.path.exists(root):
+            continue
+        for py_file in glob.glob(f"{root}/**/*.py", recursive=True):
+            discovered_tools.extend(extract_python_tools(Path(py_file)))
+
+    # PASS 2: Compiled Schema Artifact Discovery
+    artifact_patterns = []
+    for root in roots:
+        artifact_patterns.extend([
+            f"{root}/**/mcp_schemas/*.json",
+            f"{root}/**/mcp_schemas/*.mcp.json",
+            f"{root}/**/build/mcp_schemas/*.json",
+            f"{root}/**/target/mcp_schemas/*.json",
+            f"{root}/**/dist/mcp_schemas/*.json",
+        ])
 
     found_files = set()
-    for pattern in patterns:
-        for filepath in glob.glob(pattern, recursive=True):
-            found_files.add(filepath)
+    for pattern in artifact_patterns:
+        for json_file in glob.glob(pattern, recursive=True):
+            found_files.add(json_file)
 
-    for filepath in found_files:
+    for json_file in found_files:
         try:
-            content = Path(filepath).read_text(encoding="utf-8", errors="replace")
+            content = Path(json_file).read_text(encoding="utf-8", errors="replace")
             data = json.loads(content)
-            domain = normalize_domain_context(filepath)
-            
+            domain = normalize_domain_context(json_file)
+
             if isinstance(data, list):
                 for item in data:
                     if isinstance(item, dict) and "name" in item:
                         item.setdefault("domain", domain)
-                        item.setdefault("source_file", filepath)
-                        sidecar_tools.append(item)
+                        item.setdefault("source_file", json_file)
+                        if not any(t["name"] == item["name"] for t in discovered_tools):
+                            discovered_tools.append(item)
             elif isinstance(data, dict) and "name" in data:
                 data.setdefault("domain", domain)
-                data.setdefault("source_file", filepath)
-                sidecar_tools.append(data)
+                data.setdefault("source_file", json_file)
+                if not any(t["name"] == data["name"] for t in discovered_tools):
+                    discovered_tools.append(data)
         except Exception as e:
-            print(f"Warning: Failed to parse sidecar JSON at {filepath}: {e}", file=sys.stderr)
+            print(f"Warning: Failed to load artifact JSON at {json_file}: {e}", file=sys.stderr)
 
-    return sidecar_tools
+    return discovered_tools
 
 
 def main():
     args = parse_args()
-    root_path = Path(args.workload_root)
-
-    if not root_path.exists():
-        print(f"Error: Workload root path '{args.workload_root}' does not exist.", file=sys.stderr)
-        sys.exit(1)
-
-    discovered_tools = []
-
-    # 1. AST Scan for Python files
-    for py_file in root_path.rglob("*.py"):
-        tools = extract_python_ast_tools(py_file)
-        discovered_tools.extend(tools)
-
-    # 2. Sidecar Scan for Native C++/C/Rust compiled schemas
-    sidecar_tools = scan_build_schema_sidecars(args.workload_root)
-    discovered_tools.extend(sidecar_tools)
+    discovered_tools = discover_all_tools(args.roots)
 
     # Group tools by domain
     domain_manifests = {}

@@ -1,0 +1,14 @@
+{
+  "name": "disassemble_sve_intrinsics",
+  "description": "Uses capstone-rs to disassemble target ELF sections, verifying vector-length agnostic (VLA) instruction usage and flagging hardcoded vector-width assumptions.",
+  "language": "rust",
+  "source_file": "mcp_tools/cloud_ai/disassemble_sve_intrinsics/disasm.rs",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "elf_path": { "type": "string", "description": "Path to binary ELF file" },
+      "symbol_name": { "type": "string", "description": "Symbol or function name to disassemble" }
+    },
+    "required": ["elf_path", "symbol_name"]
+  }
+}

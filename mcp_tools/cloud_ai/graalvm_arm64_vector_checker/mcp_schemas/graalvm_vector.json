@@ -1,0 +1,14 @@
+{
+  "name": "graalvm_arm64_vector_checker",
+  "description": "Analyzes GraalVM JIT assembly output, confirming that high-throughput Java streams compile into native SVE/SVE2 vector instructions.",
+  "language": "java",
+  "source_file": "mcp_tools/cloud_ai/graalvm_arm64_vector_checker/Checker.java",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "jar_path": { "type": "string", "description": "Path to target Java JAR file" },
+      "class_name": { "type": "string", "description": "Fully qualified class name to inspect" }
+    },
+    "required": ["jar_path", "class_name"]
+  }
+}

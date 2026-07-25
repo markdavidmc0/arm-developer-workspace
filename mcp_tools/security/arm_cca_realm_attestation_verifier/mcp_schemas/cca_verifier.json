@@ -1,0 +1,14 @@
+{
+  "name": "arm_cca_realm_attestation_verifier",
+  "description": "Low-level assembly driver executing SMC (Secure Monitor Call) primitives to read Arm CCA Realm Management Monitor (RMM) registers and return cryptographic attestation tokens.",
+  "language": "assembly",
+  "source_file": "mcp_tools/security/arm_cca_realm_attestation_verifier/verifier.S",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "realm_id": { "type": "string", "description": "Arm CCA Realm Identifier" },
+      "attestation_challenge": { "type": "string", "description": "Cryptographic nonce / challenge string" }
+    },
+    "required": ["realm_id", "attestation_challenge"]
+  }
+}

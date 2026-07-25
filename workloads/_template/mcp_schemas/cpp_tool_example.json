@@ -1,0 +1,14 @@
+{
+  "name": "kleidiai_depthwise_conv2d",
+  "description": "Optimizes 2D Depthwise Separable Convolution using Arm KleidiAI micro-kernels.",
+  "language": "cpp",
+  "source_file": "workloads/_template/tools_example.cpp",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "width": { "type": "integer", "description": "Image width in pixels" },
+      "height": { "type": "integer", "description": "Image height in pixels" },
+      "channels": { "type": "integer", "description": "Number of input channels" }
+    }
+  }
+}

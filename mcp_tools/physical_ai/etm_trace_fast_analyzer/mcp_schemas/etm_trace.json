@@ -1,0 +1,14 @@
+{
+  "name": "etm_trace_fast_analyzer",
+  "description": "Zero-copy parser built on nom / lock-free streams decoding Arm Embedded Trace Macrocell (ETM) packet streams for ISO 26262 automotive safety paths.",
+  "language": "rust",
+  "source_file": "mcp_tools/physical_ai/etm_trace_fast_analyzer/etm.rs",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "trace_bin_path": { "type": "string", "description": "Path to binary ETM trace file" },
+      "max_latency_ns": { "type": "integer", "description": "Maximum allowable latency threshold in nanoseconds" }
+    },
+    "required": ["trace_bin_path", "max_latency_ns"]
+  }
+}

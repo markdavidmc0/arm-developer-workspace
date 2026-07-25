@@ -1,0 +1,14 @@
+{
+  "name": "profile_mali_gpu_opencl",
+  "description": "Links against Mali OpenCL driver vendor SDK to capture arithmetic intensity, tile memory spills, and texture branch mispredictions.",
+  "language": "cpp",
+  "source_file": "mcp_tools/mobile_ai/profile_mali_gpu_opencl/mali.cpp",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "kernel_source": { "type": "string", "description": "Path to OpenCL .cl kernel source file" },
+      "workgroup_size": { "type": "array", "items": { "type": "integer" }, "description": "3D workgroup execution dimensions" }
+    },
+    "required": ["kernel_source", "workgroup_size"]
+  }
+}

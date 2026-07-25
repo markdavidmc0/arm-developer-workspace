@@ -1,0 +1,14 @@
+{
+  "name": "android_nnapi_thread_profiler",
+  "description": "Parses Android JNI runtime traces, mapping NNAPI execution threads against DynamIQ cluster migrations to detect core thrashing.",
+  "language": "java",
+  "source_file": "mcp_tools/mobile_ai/android_nnapi_thread_profiler/Profiler.java",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "trace_file": { "type": "string", "description": "Path to Systrace / ATrace JNI log file" },
+      "cluster_type": { "type": "string", "enum": ["big.LITTLE", "DynamIQ"], "description": "Target CPU core topology" }
+    },
+    "required": ["trace_file", "cluster_type"]
+  }
+}

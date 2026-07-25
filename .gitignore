@@ -1,0 +1,14 @@
+# Build & Artifact Directories
+build/
+dist/
+target/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# System & IDE
+.DS_Store
+.vscode/
+.idea/

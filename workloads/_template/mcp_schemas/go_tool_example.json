@@ -1,0 +1,13 @@
+{
+  "name": "go_arm_chi_bus_monitor",
+  "description": "Profiles AXI/CHI bus handshake latency on Arm Neoverse interconnects.",
+  "language": "go",
+  "source_file": "workloads/_template/tools_example.go",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "interconnectID": { "type": "string", "description": "Interconnect fabric identifier" },
+      "sampleRateHz": { "type": "integer", "description": "Sampling frequency in Hz" }
+    }
+  }
+}

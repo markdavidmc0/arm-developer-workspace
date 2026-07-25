@@ -1,0 +1,13 @@
+{
+  "name": "rust_sve2_vector_dot_product",
+  "description": "Computes dot product using Arm SVE2 256-bit vector registers.",
+  "language": "rust",
+  "source_file": "workloads/_template/tools_example.rs",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "vec_a_len": { "type": "integer", "description": "Length of vector A" },
+      "vec_b_len": { "type": "integer", "description": "Length of vector B" }
+    }
+  }
+}

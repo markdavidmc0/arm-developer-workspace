@@ -1,0 +1,14 @@
+{
+  "name": "arm_spe_event_profiler",
+  "description": "Interfaces with the Platform Gateway's Performix REST endpoints to stream hardware Statistical Profiling Extension (SPE) events.",
+  "language": "c",
+  "source_file": "mcp_tools/cloud_ai/arm_spe_event_profiler/spe.c",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "workload_pid": { "type": "integer", "description": "Target process ID to profile" },
+      "sample_period": { "type": "integer", "description": "SPE sampling period in cycles" }
+    },
+    "required": ["workload_pid", "sample_period"]
+  }
+}

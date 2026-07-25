@@ -1,0 +1,14 @@
+{
+  "name": "ros2_arm_zenoh_latency_profiler",
+  "description": "Captures ROS 2 DDS/Zenoh transport performance metrics across Arm edge nodes to detect inter-process communication latency spikes.",
+  "language": "go",
+  "source_file": "mcp_tools/physical_ai/ros2_arm_zenoh_latency_profiler/latency.go",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "topic_name": { "type": "string", "description": "ROS 2 topic name to monitor" },
+      "duration_sec": { "type": "integer", "description": "Profiling duration in seconds" }
+    },
+    "required": ["topic_name", "duration_sec"]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "ethos_u_npu_cycle_estimator",
+  "description": "Executes cycle-accurate simulation using Ethos-U Core Driver libraries to estimate MAC unit utilization and SRAM bank conflict counts.",
+  "language": "cpp",
+  "source_file": "mcp_tools/physical_ai/ethos_u_npu_cycle_estimator/ethos.cpp",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "tflite_model_path": { "type": "string", "description": "Path to quantized .tflite model file" },
+      "npu_config": { "type": "string", "enum": ["ethos-u55-256", "ethos-u65-512"], "description": "Ethos-U hardware configuration variant" }
+    },
+    "required": ["tflite_model_path", "npu_config"]
+  }
+}

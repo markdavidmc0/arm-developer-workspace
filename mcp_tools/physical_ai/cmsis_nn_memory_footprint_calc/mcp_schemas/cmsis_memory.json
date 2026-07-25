@@ -1,0 +1,14 @@
+{
+  "name": "cmsis_nn_memory_footprint_calc",
+  "description": "Parses Arm Cortex-M ELF headers, evaluating .data, .bss, and CMSIS-NN scratchpad memory buffer constraints against Tightly Coupled Memory (TCM) limits.",
+  "language": "c",
+  "source_file": "mcp_tools/physical_ai/cmsis_nn_memory_footprint_calc/cmsis.c",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "elf_binary": { "type": "string", "description": "Path to Cortex-M firmware ELF file" },
+      "tcm_size_kb": { "type": "integer", "description": "Tightly Coupled Memory capacity in kilobytes" }
+    },
+    "required": ["elf_binary", "tcm_size_kb"]
+  }
+}

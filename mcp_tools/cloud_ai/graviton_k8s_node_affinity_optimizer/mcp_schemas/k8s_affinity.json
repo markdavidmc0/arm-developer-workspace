@@ -1,0 +1,14 @@
+{
+  "name": "graviton_k8s_node_affinity_optimizer",
+  "description": "Audits Kubernetes deployment specs with k8s.io/client-go to inject optimal CPU pinning, thread affinity, and NUMA node topology constraints for AWS Graviton nodes.",
+  "language": "go",
+  "source_file": "mcp_tools/cloud_ai/graviton_k8s_node_affinity_optimizer/affinity.go",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "manifest_path": { "type": "string", "description": "Path to Kubernetes YAML manifest" },
+      "target_graviton_gen": { "type": "integer", "enum": [3, 4], "description": "AWS Graviton generation (3 or 4)" }
+    },
+    "required": ["manifest_path", "target_graviton_gen"]
+  }
+}

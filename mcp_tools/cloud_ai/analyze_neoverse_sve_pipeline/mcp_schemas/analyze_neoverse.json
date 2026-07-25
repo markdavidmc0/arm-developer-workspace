@@ -1,0 +1,14 @@
+{
+  "name": "analyze_neoverse_sve_pipeline",
+  "description": "Uses LLVM-MCA C++ API headers directly to calculate instruction throughput, register pressures, and vector execution pipe stalls on Neoverse cores.",
+  "language": "cpp",
+  "source_file": "mcp_tools/cloud_ai/analyze_neoverse_sve_pipeline/pipeline.cpp",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "assembly_file": { "type": "string", "description": "Path to target assembly file (.s / .S)" },
+      "core_target": { "type": "string", "enum": ["neoverse-v2", "neoverse-n2"], "description": "Target Neoverse micro-architecture" }
+    },
+    "required": ["assembly_file", "core_target"]
+  }
+}

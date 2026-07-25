@@ -1,0 +1,15 @@
+{
+  "name": "arm_sve2_matmul_tile_kernel",
+  "description": "Hand-crafted Arm SVE2 256-bit Vector Outer Product GEMM Kernel.",
+  "language": "assembly",
+  "source_file": "workloads/_template/tools_example.S",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "tile_size": {
+        "type": "integer",
+        "description": "Matrix tile size in bytes"
+      }
+    }
+  }
+}
