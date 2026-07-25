@@ -76,11 +76,9 @@ jobs:
       - name: Run Auto-Discovery & Register Tools with Platform Gateway
         env:
           PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
+          KEYCLOAK_TOKEN_URL: ${{ secrets.KEYCLOAK_TOKEN_URL }}
+          KEYCLOAK_CLIENT_ID: ${{ secrets.KEYCLOAK_CLIENT_ID }}
+          KEYCLOAK_CLIENT_SECRET: ${{ secrets.KEYCLOAK_CLIENT_SECRET }}
           ARM_M2M_API_KEY: ${{ secrets.ARM_M2M_API_KEY }}
         run: |
-          if [ -z "$ARM_M2M_API_KEY" ]; then
-            echo "Notice: ARM_M2M_API_KEY secret not found. Running in dry-run / mock registration mode."
-            python3 scripts/ci_auto_discover_tools.py --mock
-          else
-            python3 scripts/ci_auto_discover_tools.py
-          fi
+          python3 scripts/ci_auto_discover_tools.py

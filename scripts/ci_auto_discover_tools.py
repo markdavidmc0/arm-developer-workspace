@@ -2,10 +2,7 @@
 """
 Zero-Regex Tool Auto-Discovery Script for Arm Developer Workspace
 Scans both mcp_tools/ and workloads/ directories recursively.
-Strict Architectural Directive:
-- Python (.py): Standard library ast module (ast.parse, ast.walk) only.
-- C / C++ / Rust / Go / Assembly / Java: Build artifacts / schema JSON files.
-- REGEX USAGE: ZERO.
+Integrates Keycloak OAuth2 Client Credentials Grant for M2M registration.
 """
 
 import argparse
@@ -15,15 +12,36 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
+
+# Import central platform defaults
+try:
+    from platform_config import (
+        ARM_M2M_API_KEY,
+        KEYCLOAK_CLIENT_ID,
+        KEYCLOAK_CLIENT_SECRET,
+        KEYCLOAK_TOKEN_URL,
+        PLATFORM_ENDPOINT_URL,
+    )
+except ImportError:
+    # Inline fallback if imported out of directory
+    PLATFORM_ENDPOINT_URL = "https://mvcp-gateway.your-domain.com/api/v1/registry/register"
+    KEYCLOAK_TOKEN_URL = "https://keycloak.your-domain.com/realms/arm-platform/protocol/openid-connect/token"
+    KEYCLOAK_CLIENT_ID = "github-ci-runner"
+    KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
+    ARM_M2M_API_KEY = os.getenv("ARM_M2M_API_KEY", "")
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Zero-Regex Multi-Language Tool Auto-Discovery Script")
     parser.add_argument("--roots", nargs="+", default=["mcp_tools", "workloads"], help="Root directories to scan")
-    parser.add_argument("--endpoint-url", default=os.getenv("PLATFORM_ENDPOINT_URL", "https://mvcp-gateway.your-domain.com/api/v1/registry/register"), help="Registry registration endpoint")
-    parser.add_argument("--api-key", default=os.getenv("ARM_M2M_API_KEY", ""), help="API Authorization Key")
+    parser.add_argument("--endpoint-url", default=PLATFORM_ENDPOINT_URL, help="Registry registration endpoint")
+    parser.add_argument("--keycloak-token-url", default=KEYCLOAK_TOKEN_URL, help="Keycloak OAuth2 token endpoint")
+    parser.add_argument("--client-id", default=KEYCLOAK_CLIENT_ID, help="Keycloak M2M Client ID")
+    parser.add_argument("--client-secret", default=KEYCLOAK_CLIENT_SECRET, help="Keycloak M2M Client Secret")
+    parser.add_argument("--api-key", default=ARM_M2M_API_KEY, help="Legacy API Authorization Key")
     parser.add_argument("--mock", action="store_true", help="Force mock registration mode")
     parser.add_argument("--output-report", default="tools_discovery_report.json", help="Path to write output discovery manifest")
     return parser.parse_args()
@@ -117,7 +135,7 @@ def discover_all_tools(roots: list[str]) -> list[dict]:
     """
     Two-Pass Tool Discovery Engine (Zero Regex):
     PASS 1: Python Static AST Discovery via ast module across scan roots.
-    PASS 2: Compiled & Companion Schema Artifact Discovery (C++, Rust, Go, Java, Assembly).
+    PASS 2: Compiled Schema Artifact Discovery (C++, Rust, Go, Java, Assembly).
     """
     discovered_tools = []
 
@@ -168,8 +186,46 @@ def discover_all_tools(roots: list[str]) -> list[dict]:
     return discovered_tools
 
 
+def get_keycloak_access_token(token_url: str, client_id: str, client_secret: str) -> str:
+    """
+    Exchanges Keycloak M2M Client Credentials for a short-lived OAuth2 JWT Access Token.
+    Uses standard library urllib.request (zero third-party dependencies).
+    """
+    payload = urllib.parse.urlencode({
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_secret": client_secret
+    }).encode("utf-8")
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "Arm-M2M-AutoDiscover/1.0"
+    }
+
+    req = urllib.request.Request(token_url, data=payload, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            return res_data.get("access_token", "")
+    except Exception as e:
+        print(f"Warning: Keycloak token exchange failed against {token_url}: {e}", file=sys.stderr)
+        return ""
+
+
 def main():
     args = parse_args()
+
+    # Determine execution mode
+    bearer_token = ""
+    if args.client_secret and not args.mock:
+        print(f"Requesting Keycloak M2M access token for client '{args.client_id}'...")
+        bearer_token = get_keycloak_access_token(args.keycloak_token_url, args.client_id, args.client_secret)
+
+    if not bearer_token and args.api_key:
+        bearer_token = args.api_key
+
+    is_mock = args.mock or not bearer_token
+
     discovered_tools = discover_all_tools(args.roots)
 
     # Group tools by domain
@@ -188,8 +244,8 @@ def main():
     print(f"Discovered {len(discovered_tools)} MCP tools across {len(domain_manifests)} domain(s). Report saved to '{args.output_report}'.")
 
     # Registration phase
-    if args.mock or not args.api_key:
-        print("Notice: Executing in Mock/Dry-Run Registration Mode (API Key missing or --mock flag set).")
+    if is_mock:
+        print("Notice: Executing in Mock/Dry-Run Registration Mode (Missing Keycloak secret/token or --mock flag set).")
         print(json.dumps(summary_output, indent=2))
         return
 
@@ -198,7 +254,7 @@ def main():
         payload = json.dumps({"tools": tools}).encode("utf-8")
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {args.api_key}",
+            "Authorization": f"Bearer {bearer_token}",
             "X-Workspace-Context": domain,
             "User-Agent": "Arm-M2M-AutoDiscover/1.0"
         }
