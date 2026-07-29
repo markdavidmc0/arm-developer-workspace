@@ -184,9 +184,10 @@ def fetch_github_oidc_id_token(audience: str = "github-ci-runner") -> str:
     Retrieves GitHub Actions short-lived OIDC ID token from runtime environment.
     """
     request_url = os.getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
-    request_token = os.getenv("ACTIONS_RUNTIME_TOKEN")
+    request_token = os.getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN") or os.getenv("ACTIONS_RUNTIME_TOKEN")
 
     if not request_url or not request_token:
+        print("[OIDC] Notice: ACTIONS_ID_TOKEN_REQUEST_URL or ACTIONS_ID_TOKEN_REQUEST_TOKEN not present.", file=sys.stderr)
         return ""
 
     aud_param = urllib.parse.quote(audience)
