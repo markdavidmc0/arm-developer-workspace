@@ -2,7 +2,7 @@
 """
 Zero-Regex Tool Auto-Discovery Script for Arm Developer Workspace
 Scans both mcp_tools/ and workloads/ directories recursively.
-Integrates Keycloak OAuth2 Client Credentials Grant for M2M registration.
+Integrates Secretless Direct GitHub Actions OIDC Federation with Keycloak.
 """
 
 import argparse
@@ -16,22 +16,16 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-# Import central platform defaults
-try:
-    from platform_config import (
-        ARM_M2M_API_KEY,
-        KEYCLOAK_CLIENT_ID,
-        KEYCLOAK_CLIENT_SECRET,
-        KEYCLOAK_TOKEN_URL,
-        PLATFORM_ENDPOINT_URL,
-    )
-except ImportError:
-    # Inline fallback if imported out of directory
-    PLATFORM_ENDPOINT_URL = "https://mvcp-gateway.your-domain.com/api/v1/registry/register"
-    KEYCLOAK_TOKEN_URL = "https://keycloak.your-domain.com/realms/arm-platform/protocol/openid-connect/token"
-    KEYCLOAK_CLIENT_ID = "github-ci-runner"
-    KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
-    ARM_M2M_API_KEY = os.getenv("ARM_M2M_API_KEY", "")
+# Ensure scripts directory is on sys.path for canonical platform_config import
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from platform_config import (
+    KEYCLOAK_CLIENT_ID,
+    KEYCLOAK_TOKEN_URL,
+    PLATFORM_ENDPOINT_URL,
+)
 
 
 def parse_args():
@@ -40,8 +34,7 @@ def parse_args():
     parser.add_argument("--endpoint-url", default=PLATFORM_ENDPOINT_URL, help="Registry registration endpoint")
     parser.add_argument("--keycloak-token-url", default=KEYCLOAK_TOKEN_URL, help="Keycloak OAuth2 token endpoint")
     parser.add_argument("--client-id", default=KEYCLOAK_CLIENT_ID, help="Keycloak M2M Client ID")
-    parser.add_argument("--client-secret", default=KEYCLOAK_CLIENT_SECRET, help="Keycloak M2M Client Secret")
-    parser.add_argument("--api-key", default=ARM_M2M_API_KEY, help="Legacy API Authorization Key")
+    parser.add_argument("--client-secret", default=os.getenv("KEYCLOAK_CLIENT_SECRET", ""), help="Optional static secret fallback")
     parser.add_argument("--mock", action="store_true", help="Force mock registration mode")
     parser.add_argument("--output-report", default="tools_discovery_report.json", help="Path to write output discovery manifest")
     return parser.parse_args()
@@ -186,16 +179,61 @@ def discover_all_tools(roots: list[str]) -> list[dict]:
     return discovered_tools
 
 
-def get_keycloak_access_token(token_url: str, client_id: str, client_secret: str) -> str:
+def fetch_github_oidc_id_token(audience: str = "github-ci-runner") -> str:
     """
-    Exchanges Keycloak M2M Client Credentials for a short-lived OAuth2 JWT Access Token.
-    Uses standard library urllib.request (zero third-party dependencies).
+    Retrieves GitHub Actions short-lived OIDC ID token from runtime environment.
     """
-    payload = urllib.parse.urlencode({
-        "grant_type": "client_credentials",
-        "client_id": client_id,
-        "client_secret": client_secret
-    }).encode("utf-8")
+    request_url = os.getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
+    request_token = os.getenv("ACTIONS_RUNTIME_TOKEN")
+
+    if not request_url or not request_token:
+        return ""
+
+    aud_param = urllib.parse.quote(audience)
+    req_url = f"{request_url}&audience={aud_param}" if "audience=" not in request_url else request_url
+    headers = {
+        "Authorization": f"Bearer {request_token}",
+        "User-Agent": "Arm-M2M-AutoDiscover/1.0"
+    }
+
+    try:
+        req = urllib.request.Request(req_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            token = data.get("value", "")
+            if token:
+                print("[OIDC] Successfully fetched GitHub Actions OIDC ID Token.", file=sys.stderr)
+            return token
+    except Exception as e:
+        print(f"[OIDC] Warning: GitHub OIDC token request failed: {e}", file=sys.stderr)
+        return ""
+
+
+def get_keycloak_access_token(token_url: str, client_id: str, client_secret: str = "") -> str:
+    """
+    Exchanges GitHub OIDC Token directly for a short-lived Keycloak OAuth2 JWT Access Token.
+    Zero static secrets required.
+    """
+    # 1. Fetch direct GitHub Actions OIDC ID Token
+    github_oidc_token = fetch_github_oidc_id_token(audience=client_id)
+    if github_oidc_token:
+        print(f"[Keycloak] Exchanging GitHub Actions OIDC ID Token with Keycloak (Client ID: '{client_id}')...")
+        payload = urllib.parse.urlencode({
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            "client_assertion": github_oidc_token
+        }).encode("utf-8")
+    elif client_secret:
+        print(f"[Keycloak] Fallback: Using Client Secret token exchange (Client ID: '{client_id}')...")
+        payload = urllib.parse.urlencode({
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret
+        }).encode("utf-8")
+    else:
+        print("[Keycloak] Notice: Not running in GitHub Actions OIDC context and no fallback secret provided.", file=sys.stderr)
+        return ""
 
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -206,9 +244,12 @@ def get_keycloak_access_token(token_url: str, client_id: str, client_secret: str
     try:
         with urllib.request.urlopen(req, timeout=15) as response:
             res_data = json.loads(response.read().decode("utf-8"))
-            return res_data.get("access_token", "")
+            access_token = res_data.get("access_token", "")
+            if access_token:
+                print("[Keycloak] Successfully obtained Keycloak Access Token.")
+            return access_token
     except Exception as e:
-        print(f"Warning: Keycloak token exchange failed against {token_url}: {e}", file=sys.stderr)
+        print(f"[Keycloak] Warning: Keycloak token exchange failed against '{token_url}': {e}", file=sys.stderr)
         return ""
 
 
@@ -217,12 +258,8 @@ def main():
 
     # Determine execution mode
     bearer_token = ""
-    if args.client_secret and not args.mock:
-        print(f"Requesting Keycloak M2M access token for client '{args.client_id}'...")
+    if not args.mock:
         bearer_token = get_keycloak_access_token(args.keycloak_token_url, args.client_id, args.client_secret)
-
-    if not bearer_token and args.api_key:
-        bearer_token = args.api_key
 
     is_mock = args.mock or not bearer_token
 
@@ -245,7 +282,7 @@ def main():
 
     # Registration phase
     if is_mock:
-        print("Notice: Executing in Mock/Dry-Run Registration Mode (Missing Keycloak secret/token or --mock flag set).")
+        print("Notice: Executing in Mock/Dry-Run Registration Mode (Missing Keycloak token or --mock flag set).")
         print(json.dumps(summary_output, indent=2))
         return
 

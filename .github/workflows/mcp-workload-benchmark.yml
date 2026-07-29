@@ -11,13 +11,15 @@ on:
     paths:
       - 'workloads/**'
 
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
 jobs:
   benchmark:
     name: M2M Tool Discovery & Workload Benchmark
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
 
     steps:
       - name: Checkout Repository History
@@ -32,17 +34,12 @@ jobs:
 
       - name: Step A - Auto-Discover & Register MCP Tools
         env:
-          ARM_M2M_API_KEY: ${{ secrets.ARM_M2M_API_KEY }}
           PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
+          KEYCLOAK_TOKEN_URL: ${{ secrets.KEYCLOAK_TOKEN_URL }}
+          KEYCLOAK_CLIENT_ID: ${{ secrets.KEYCLOAK_CLIENT_ID }}
         run: |
           echo "Executing Zero-Manifest Tool Auto-Discovery..."
-          MOCK_FLAG=""
-          if [ -z "$ARM_M2M_API_KEY" ]; then
-            echo "Notice: ARM_M2M_API_KEY secret is not set (e.g. Fork PR or dry-run). Running tool discovery in mock mode."
-            MOCK_FLAG="--mock"
-          fi
-
-          python3 scripts/ci_auto_discover_tools.py $MOCK_FLAG
+          python3 scripts/ci_auto_discover_tools.py
 
       - name: Step B - Detect Changed Workload Targets
         id: detect-workloads
@@ -71,22 +68,15 @@ jobs:
       - name: Step C - Execute M2M Benchmark Client
         if: ${{ steps.detect-workloads.outputs.changed_dirs != '' }}
         env:
-          ARM_M2M_API_KEY: ${{ secrets.ARM_M2M_API_KEY }}
           PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
+          KEYCLOAK_TOKEN_URL: ${{ secrets.KEYCLOAK_TOKEN_URL }}
+          KEYCLOAK_CLIENT_ID: ${{ secrets.KEYCLOAK_CLIENT_ID }}
         run: |
           mkdir -p reports
           COMBINED_REPORT="reports/combined_report.md"
           echo "<!-- arm-mcp-benchmark-marker -->" > "$COMBINED_REPORT"
           echo "# 🦾 Arm M2M CI/CD Benchmark & Optimization Report" >> "$COMBINED_REPORT"
           echo "" >> "$COMBINED_REPORT"
-
-          MOCK_FLAG=""
-          if [ -z "$ARM_M2M_API_KEY" ]; then
-            echo "Notice: ARM_M2M_API_KEY is missing. Defaulting benchmark execution to mock mode."
-            MOCK_FLAG="--mock"
-            echo "> ⚠️ **Notice:** Secrets are restricted on fork PRs or missing. Running in mock/dry-run mode." >> "$COMBINED_REPORT"
-            echo "" >> "$COMBINED_REPORT"
-          fi
 
           for WORKLOAD_DIR in ${{ steps.detect-workloads.outputs.changed_dirs }}; do
             if [ -d "$WORKLOAD_DIR" ]; then
@@ -95,8 +85,7 @@ jobs:
               
               python3 scripts/ci_mcp_client.py \
                 --workload-path "$WORKLOAD_DIR" \
-                --output-report "$REPORT_FILE" \
-                $MOCK_FLAG
+                --output-report "$REPORT_FILE"
 
               if [ -f "$REPORT_FILE" ]; then
                 cat "$REPORT_FILE" >> "$COMBINED_REPORT"

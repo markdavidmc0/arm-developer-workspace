@@ -7,6 +7,10 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   # STAGE 1: Parallel Build & Schema Extraction Job Matrix (Fan-Out)
   build-and-extract-schemas:
@@ -49,11 +53,14 @@ jobs:
           path: ${{ matrix.output_dir }}/*.json
           retention-days: 1
 
-  # STAGE 2 & 3: Schema Aggregation & Authentic Gateway Registration (Fan-In)
+  # STAGE 2 & 3: Schema Aggregation & Secretless Gateway Registration (Fan-In)
   aggregate-and-register:
     name: Aggregate & Register Tools
     needs: build-and-extract-schemas
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -73,12 +80,10 @@ jobs:
           mkdir -p build/mcp_schemas/ target/mcp_schemas/ dist/mcp_schemas/
           find extracted_schemas/ -name "*.json" -exec cp {} build/mcp_schemas/ \;
 
-      - name: Run Auto-Discovery & Register Tools with Platform Gateway
+      - name: Run Secretless Auto-Discovery & Register Tools
         env:
           PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
           KEYCLOAK_TOKEN_URL: ${{ secrets.KEYCLOAK_TOKEN_URL }}
           KEYCLOAK_CLIENT_ID: ${{ secrets.KEYCLOAK_CLIENT_ID }}
-          KEYCLOAK_CLIENT_SECRET: ${{ secrets.KEYCLOAK_CLIENT_SECRET }}
-          ARM_M2M_API_KEY: ${{ secrets.ARM_M2M_API_KEY }}
         run: |
           python3 scripts/ci_auto_discover_tools.py
