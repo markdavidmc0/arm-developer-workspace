@@ -16,11 +16,12 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-# Ensure scripts directory is on sys.path for canonical platform_config import
+# Ensure scripts directory is on sys.path for canonical imports
 SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+from common_logging import setup_pipeline_logging
 from platform_config import (
     KEYCLOAK_CLIENT_ID,
     KEYCLOAK_TOKEN_URL,
@@ -255,6 +256,7 @@ def get_keycloak_access_token(token_url: str, client_id: str, client_secret: str
 
 
 def main():
+    setup_pipeline_logging()
     args = parse_args()
 
     # Determine execution mode

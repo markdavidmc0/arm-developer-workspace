@@ -81,9 +81,5 @@ jobs:
           find extracted_schemas/ -name "*.json" -exec cp {} build/mcp_schemas/ \;
 
       - name: Run Secretless Auto-Discovery & Register Tools
-        env:
-          PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
-          KEYCLOAK_TOKEN_URL: ${{ secrets.KEYCLOAK_TOKEN_URL }}
-          KEYCLOAK_CLIENT_ID: ${{ secrets.KEYCLOAK_CLIENT_ID }}
         run: |
           python3 scripts/ci_auto_discover_tools.py

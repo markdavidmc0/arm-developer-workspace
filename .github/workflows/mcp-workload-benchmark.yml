@@ -33,10 +33,6 @@ jobs:
           python-version: '3.11'
 
       - name: Step A - Auto-Discover & Register MCP Tools
-        env:
-          PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
-          KEYCLOAK_TOKEN_URL: ${{ secrets.KEYCLOAK_TOKEN_URL }}
-          KEYCLOAK_CLIENT_ID: ${{ secrets.KEYCLOAK_CLIENT_ID }}
         run: |
           echo "Executing Zero-Manifest Tool Auto-Discovery..."
           python3 scripts/ci_auto_discover_tools.py
@@ -67,10 +63,6 @@ jobs:
 
       - name: Step C - Execute M2M Benchmark Client
         if: ${{ steps.detect-workloads.outputs.changed_dirs != '' }}
-        env:
-          PLATFORM_ENDPOINT_URL: ${{ secrets.PLATFORM_ENDPOINT_URL }}
-          KEYCLOAK_TOKEN_URL: ${{ secrets.KEYCLOAK_TOKEN_URL }}
-          KEYCLOAK_CLIENT_ID: ${{ secrets.KEYCLOAK_CLIENT_ID }}
         run: |
           mkdir -p reports
           COMBINED_REPORT="reports/combined_report.md"
