@@ -5,8 +5,6 @@ name: Arm M2M Workload Benchmark & Optimization Pipeline
 # ─────────────────────────────────────────────────────────────
 env:
   PYTHON_VERSION: "3.11"
-  TAILSCALE_OAUTH_CLIENT_ID: "k123456CNTRL"  # Non-secret Tailscale OAuth Client ID
-  TAILSCALE_TAGS: "tag:ci"
 
 on:
   pull_request:
@@ -27,7 +25,7 @@ permissions:
 jobs:
   benchmark:
     name: M2M Tool Discovery & Workload Benchmark
-    runs-on: ubuntu-latest
+    runs-on: arm-developer-workspace-runner
 
     steps:
       - name: Checkout Repository History
@@ -39,12 +37,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Connect to Tailscale Mesh Network (Secretless OIDC)
-        uses: tailscale/github-action@v2
-        with:
-          oauth-client-id: ${{ env.TAILSCALE_OAUTH_CLIENT_ID }}
-          tags: ${{ env.TAILSCALE_TAGS }}
 
       - name: Step A - Auto-Discover & Register MCP Tools
         run: |

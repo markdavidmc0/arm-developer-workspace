@@ -5,8 +5,6 @@ name: MCP Tool Schema Extraction & Gateway Registration
 # ─────────────────────────────────────────────────────────────
 env:
   PYTHON_VERSION: "3.11"
-  TAILSCALE_OAUTH_CLIENT_ID: "k123456CNTRL"  # Non-secret Tailscale OAuth Client ID
-  TAILSCALE_TAGS: "tag:ci"
 
 on:
   push:
@@ -23,7 +21,7 @@ jobs:
   # STAGE 1: Parallel Build & Schema Extraction Job Matrix (Fan-Out)
   build-and-extract-schemas:
     name: Extract Schemas (${{ matrix.language }})
-    runs-on: ubuntu-latest
+    runs-on: arm-developer-workspace-runner
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +63,7 @@ jobs:
   aggregate-and-register:
     name: Aggregate & Register Tools
     needs: build-and-extract-schemas
-    runs-on: ubuntu-latest
+    runs-on: arm-developer-workspace-runner
     permissions:
       id-token: write
       contents: read
@@ -87,12 +85,6 @@ jobs:
         run: |
           mkdir -p build/mcp_schemas/ target/mcp_schemas/ dist/mcp_schemas/
           find extracted_schemas/ -name "*.json" -exec cp {} build/mcp_schemas/ \;
-
-      - name: Connect to Tailscale Mesh Network (Secretless OIDC)
-        uses: tailscale/github-action@v2
-        with:
-          oauth-client-id: ${{ env.TAILSCALE_OAUTH_CLIENT_ID }}
-          tags: ${{ env.TAILSCALE_TAGS }}
 
       - name: Run Secretless Auto-Discovery & Register Tools
         run: |
