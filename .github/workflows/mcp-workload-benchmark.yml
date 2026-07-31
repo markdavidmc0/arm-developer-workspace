@@ -1,5 +1,13 @@
 name: Arm M2M Workload Benchmark & Optimization Pipeline
 
+# ─────────────────────────────────────────────────────────────
+# CENTRAL WORKFLOW CONFIGURATION (Configuration-as-Code)
+# ─────────────────────────────────────────────────────────────
+env:
+  PYTHON_VERSION: "3.11"
+  TAILSCALE_OAUTH_CLIENT_ID: "k123456CNTRL"  # Non-secret Tailscale OAuth Client ID
+  TAILSCALE_TAGS: "tag:ci"
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -30,7 +38,13 @@ jobs:
       - name: Set up Python 3.x
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Connect to Tailscale Mesh Network (Secretless OIDC)
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ env.TAILSCALE_OAUTH_CLIENT_ID }}
+          tags: ${{ env.TAILSCALE_TAGS }}
 
       - name: Step A - Auto-Discover & Register MCP Tools
         run: |

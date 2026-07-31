@@ -1,5 +1,13 @@
 name: MCP Tool Schema Extraction & Gateway Registration
 
+# ─────────────────────────────────────────────────────────────
+# CENTRAL WORKFLOW CONFIGURATION (Configuration-as-Code)
+# ─────────────────────────────────────────────────────────────
+env:
+  PYTHON_VERSION: "3.11"
+  TAILSCALE_OAUTH_CLIENT_ID: "k123456CNTRL"  # Non-secret Tailscale OAuth Client ID
+  TAILSCALE_TAGS: "tag:ci"
+
 on:
   push:
     branches: [ main, master ]
@@ -40,7 +48,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Extract Tool Schemas for ${{ matrix.language }}
         run: |
@@ -68,7 +76,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Download All Schema Artifacts
         uses: actions/download-artifact@v4
@@ -79,6 +87,12 @@ jobs:
         run: |
           mkdir -p build/mcp_schemas/ target/mcp_schemas/ dist/mcp_schemas/
           find extracted_schemas/ -name "*.json" -exec cp {} build/mcp_schemas/ \;
+
+      - name: Connect to Tailscale Mesh Network (Secretless OIDC)
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ env.TAILSCALE_OAUTH_CLIENT_ID }}
+          tags: ${{ env.TAILSCALE_TAGS }}
 
       - name: Run Secretless Auto-Discovery & Register Tools
         run: |
