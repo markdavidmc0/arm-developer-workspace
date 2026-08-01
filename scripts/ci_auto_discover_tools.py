@@ -211,58 +211,41 @@ def fetch_github_oidc_id_token(audience: str = "github-ci-runner") -> str:
         return ""
 
 
-def get_keycloak_access_token(token_url: str, client_id: str, client_secret: str = "") -> str:
+def get_keycloak_access_token(token_url: str, client_id: str) -> str:
     """
-    Exchanges GitHub OIDC Token or Client Credentials directly for a short-lived Keycloak OAuth2 JWT Access Token.
+    Exchanges GitHub Actions OIDC ID Token directly for a short-lived Keycloak OAuth2 JWT Access Token.
+    100% Secretless execution.
     """
     github_oidc_token = fetch_github_oidc_id_token(audience=client_id)
+    if not github_oidc_token:
+        print("[Keycloak] Notice: Not running in GitHub Actions OIDC context.", file=sys.stderr)
+        return ""
+
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "Arm-M2M-AutoDiscover/1.0"
     }
 
-    # 1. Attempt Secretless OIDC Token Exchange if OIDC token is present
-    if github_oidc_token:
-        print(f"[Keycloak] Exchanging GitHub Actions OIDC ID Token with Keycloak (Client ID: '{client_id}')...")
-        payload = urllib.parse.urlencode({
-            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-            "client_id": client_id,
-            "subject_token": github_oidc_token,
-            "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
-            "subject_issuer": "github-actions"
-        }).encode("utf-8")
-        req = urllib.request.Request(token_url, data=payload, headers=headers, method="POST")
-        try:
-            with urllib.request.urlopen(req, timeout=15) as response:
-                res_data = json.loads(response.read().decode("utf-8"))
-                access_token = res_data.get("access_token", "")
-                if access_token:
-                    print("[Keycloak] Successfully obtained Keycloak Access Token via OIDC Token Exchange.")
-                    return access_token
-        except Exception as e:
-            print(f"[Keycloak] Warning: OIDC token exchange returned: {e}. Trying client_credentials fallback...", file=sys.stderr)
+    print(f"[Keycloak] Secretless OIDC Exchange: Exchanging GitHub OIDC Token with Keycloak (Client ID: '{client_id}')...")
+    payload = urllib.parse.urlencode({
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "client_id": client_id,
+        "subject_token": github_oidc_token,
+        "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+        "subject_issuer": "github-actions"
+    }).encode("utf-8")
 
-    # 2. Client Credentials Fallback
-    secret_to_use = client_secret or os.getenv("KEYCLOAK_CLIENT_SECRET", "arm-platform-ci-secret-2026")
-    if secret_to_use:
-        print(f"[Keycloak] Authenticating via M2M Client Credentials (Client ID: '{client_id}')...")
-        payload = urllib.parse.urlencode({
-            "grant_type": "client_credentials",
-            "client_id": client_id,
-            "client_secret": secret_to_use
-        }).encode("utf-8")
-        req = urllib.request.Request(token_url, data=payload, headers=headers, method="POST")
-        try:
-            with urllib.request.urlopen(req, timeout=15) as response:
-                res_data = json.loads(response.read().decode("utf-8"))
-                access_token = res_data.get("access_token", "")
-                if access_token:
-                    print("[Keycloak] Successfully obtained Keycloak Access Token via M2M Client Credentials.")
-                    return access_token
-        except Exception as e:
-            print(f"[Keycloak] Warning: Client credentials authentication failed against '{token_url}': {e}", file=sys.stderr)
+    req = urllib.request.Request(token_url, data=payload, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            access_token = res_data.get("access_token", "")
+            if access_token:
+                print("[Keycloak] Successfully obtained Keycloak Access Token via Secretless OIDC Exchange.")
+                return access_token
+    except Exception as e:
+        print(f"[Keycloak] Warning: Secretless OIDC token exchange failed against '{token_url}': {e}", file=sys.stderr)
 
-    print("[Keycloak] Notice: Unable to obtain Keycloak access token.", file=sys.stderr)
     return ""
 
 
@@ -273,7 +256,7 @@ def main():
     # Determine execution mode
     bearer_token = ""
     if not args.mock:
-        bearer_token = get_keycloak_access_token(args.keycloak_token_url, args.client_id, args.client_secret)
+        bearer_token = get_keycloak_access_token(args.keycloak_token_url, args.client_id)
 
     is_mock = args.mock or not bearer_token
 
