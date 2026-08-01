@@ -228,11 +228,10 @@ def get_keycloak_access_token(token_url: str, client_id: str) -> str:
 
     print(f"[Keycloak] Secretless OIDC Exchange: Exchanging GitHub OIDC Token with Keycloak (Client ID: '{client_id}')...")
     payload = urllib.parse.urlencode({
-        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "grant_type": "client_credentials",
         "client_id": client_id,
-        "subject_token": github_oidc_token,
-        "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
-        "subject_issuer": "github-actions"
+        "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+        "client_assertion": github_oidc_token
     }).encode("utf-8")
 
     req = urllib.request.Request(token_url, data=payload, headers=headers, method="POST")
