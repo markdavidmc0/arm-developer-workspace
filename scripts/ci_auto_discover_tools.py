@@ -232,9 +232,7 @@ def get_keycloak_access_token(token_url: str, client_id: str) -> str:
         "client_id": client_id,
         "subject_token": github_oidc_token,
         "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
-        "subject_issuer": "github-actions",
-        "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-        "client_assertion": github_oidc_token
+        "subject_issuer": "github-actions"
     }).encode("utf-8")
 
     req = urllib.request.Request(token_url, data=payload, headers=headers, method="POST")
