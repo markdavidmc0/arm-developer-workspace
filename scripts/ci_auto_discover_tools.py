@@ -263,6 +263,8 @@ def main():
                 print("[OIDC] Using direct secretless GitHub Actions OIDC ID Token Bearer authentication.")
                 bearer_token = github_oidc_token
 
+    is_mock = args.mock or not bearer_token
+
     discovered_tools = discover_all_tools(args.roots)
 
     # Group tools by domain
