@@ -253,18 +253,7 @@ def main():
     setup_pipeline_logging()
     args = parse_args()
 
-    # Determine execution mode
-    bearer_token = ""
-    if not args.mock:
-        bearer_token = get_keycloak_access_token(args.keycloak_token_url, args.client_id)
-        if not bearer_token:
-            github_oidc_token = fetch_github_oidc_id_token(audience=args.client_id)
-            if github_oidc_token:
-                print("[OIDC] Using direct secretless GitHub Actions OIDC ID Token Bearer authentication.")
-                bearer_token = github_oidc_token
-
-    is_mock = args.mock or not bearer_token
-
+    # Phase 1: Tool Discovery
     discovered_tools = discover_all_tools(args.roots)
 
     # Group tools by domain
@@ -282,13 +271,26 @@ def main():
     Path(args.output_report).write_text(json.dumps(summary_output, indent=2), encoding="utf-8")
     print(f"Discovered {len(discovered_tools)} MCP tools across {len(domain_manifests)} domain(s). Report saved to '{args.output_report}'.")
 
-    # Registration phase
-    if is_mock:
-        print("Notice: Executing in Mock/Dry-Run Registration Mode (Missing Keycloak token or --mock flag set).")
+    # Explicit Dry-Run / Mock Mode
+    if args.mock:
+        print("Notice: Executing in Dry-Run Registration Mode (--mock flag explicitly set).")
         print(json.dumps(summary_output, indent=2))
         return
 
-    # Post to Gateway per domain slice
+    # Phase 2: Live Secretless OIDC Authentication
+    bearer_token = get_keycloak_access_token(args.keycloak_token_url, args.client_id)
+    if not bearer_token:
+        github_oidc_token = fetch_github_oidc_id_token(audience=args.client_id)
+        if github_oidc_token:
+            print("[OIDC] Using direct secretless GitHub Actions OIDC ID Token Bearer authentication.")
+            bearer_token = github_oidc_token
+
+    if not bearer_token:
+        print("[Error] Secretless OIDC authentication failed: Could not acquire Bearer Token.", file=sys.stderr)
+        sys.exit(1)
+
+    # Phase 3: Registration against Gateway per domain slice
+    registration_failed = False
     for domain, tools in domain_manifests.items():
         payload = json.dumps({"tools": tools}).encode("utf-8")
         headers = {
@@ -305,7 +307,11 @@ def main():
                 res_body = response.read().decode("utf-8")
                 print(f"Successfully registered domain '{domain}': {res_body}")
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as err:
-            print(f"Warning: Failed to register tools for domain '{domain}': {err}. Continuing...", file=sys.stderr)
+            print(f"Error: Failed to register tools for domain '{domain}': {err}", file=sys.stderr)
+            registration_failed = True
+
+    if registration_failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
