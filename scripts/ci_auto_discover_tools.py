@@ -221,10 +221,11 @@ def get_keycloak_access_token(token_url: str, client_id: str, client_secret: str
     if github_oidc_token:
         print(f"[Keycloak] Exchanging GitHub Actions OIDC ID Token with Keycloak (Client ID: '{client_id}')...")
         payload = urllib.parse.urlencode({
-            "grant_type": "client_credentials",
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "client_id": client_id,
-            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            "client_assertion": github_oidc_token
+            "subject_token": github_oidc_token,
+            "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+            "subject_issuer": "github-actions"
         }).encode("utf-8")
     elif client_secret:
         print(f"[Keycloak] Fallback: Using Client Secret token exchange (Client ID: '{client_id}')...")
