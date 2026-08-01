@@ -257,8 +257,11 @@ def main():
     bearer_token = ""
     if not args.mock:
         bearer_token = get_keycloak_access_token(args.keycloak_token_url, args.client_id)
-
-    is_mock = args.mock or not bearer_token
+        if not bearer_token:
+            github_oidc_token = fetch_github_oidc_id_token(audience=args.client_id)
+            if github_oidc_token:
+                print("[OIDC] Using direct secretless GitHub Actions OIDC ID Token Bearer authentication.")
+                bearer_token = github_oidc_token
 
     discovered_tools = discover_all_tools(args.roots)
 
