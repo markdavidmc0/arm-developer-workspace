@@ -7,7 +7,11 @@ on:
       - 'mcp_tools/**'
       - 'workloads/**'
       - 'Dockerfile.tools'
+      - '.github/workflows/publish_tools.yml'
   workflow_dispatch:
+
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
 
 jobs:
   build-and-push-tools:
