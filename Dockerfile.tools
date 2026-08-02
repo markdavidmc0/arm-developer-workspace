@@ -1,0 +1,6 @@
+FROM alpine:latest
+WORKDIR /workspace/mcp_tools
+
+# Copy multi-language tool packages and workloads
+COPY mcp_tools/ /workspace/mcp_tools/
+COPY workloads/ /workspace/mcp_tools/workloads/
