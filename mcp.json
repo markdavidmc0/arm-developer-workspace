@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "mvcp-gke-gateway": {
-      "url": "https://gateway.arm.internal/api/v1/registry/register",
-      "type": "sse",
-      "description": "Arm Central Federated AI Control Plane Gateway"
-    }
-  }
-}

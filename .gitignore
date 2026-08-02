@@ -3,15 +3,22 @@ build/
 dist/
 target/
 
-# Python
+# Python Virtual Environment & Cache
+.venv/
 __pycache__/
 *.pyc
 *.pyo
+
+# Logfire & Telemetry
+.logfire/
+
+# Generated Discovery Reports & IDE Specs
+platform_benchmark_results.md
+tools_discovery_report.json
+mcp.json
+.mcp.json
 
 # System & IDE
 .DS_Store
 .vscode/
 .idea/
-
-# Platform Benchmarking
-platform_benchmark_results.md
