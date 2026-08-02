@@ -1,0 +1,21 @@
+{
+  "name": "query_arm_hardware_rag",
+  "description": "Queries the Arm Hardware Knowledge Base Vector DB to retrieve Technical Reference Manuals (TRMs), SVE2 guidelines, and Silicon Errata.",
+  "language": "python",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query_text": {
+        "type": "string",
+        "description": "Semantic query describing the hardware issue, instruction, or TRM spec"
+      },
+      "top_k": {
+        "type": "integer",
+        "description": "Number of top matching vector results to return"
+      }
+    },
+    "required": [
+      "query_text"
+    ]
+  }
+}

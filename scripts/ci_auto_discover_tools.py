@@ -3,6 +3,8 @@
 Zero-Regex Tool Auto-Discovery Script for Arm Developer Workspace
 Scans both mcp_tools/ and workloads/ directories recursively.
 Integrates Secretless Direct GitHub Actions OIDC Federation with Keycloak.
+Constructs Context-Aware 7-Tool Bootstrap Payload, Developer Visibility Manifest (tools_discovery_report.json),
+and Standard IDE Connection Spec (mcp.json).
 """
 
 import argparse
@@ -28,6 +30,54 @@ from platform_config import (
     PLATFORM_ENDPOINT_URL,
 )
 
+# Global Platform Servers on Central Control Plane (arm-federated-ai)
+GLOBAL_PLATFORM_SERVERS = [
+    {
+        "name": "arm_official_mcp_server",
+        "description": "Arm Official Documentation & Cloud Migration Server (developer.arm.com)",
+        "server_url": "https://developer.arm.com/mcp",
+        "category": "Documentation & Migration"
+    },
+    {
+        "name": "arm_performix_telemetry_engine",
+        "description": "Arm Performix Live Hardware Telemetry Engine (SPE, Cache, Mali GPU)",
+        "server_url": "https://performix.arm.internal/v1/telemetry",
+        "category": "Hardware Telemetry"
+    },
+    {
+        "name": "arm_metis_layout_optimizer",
+        "description": "Arm Metis Micro-architectural Matrix & Tensor Layout Optimizer (github.com/arm/metis)",
+        "server_url": "https://metis.arm.internal/v1/optimize",
+        "category": "Matrix & Layout Optimization"
+    }
+]
+
+# CodeMode Meta-Tools (Pydantic AI CodeMode Architecture)
+CODEMODE_META_TOOLS = [
+    {
+        "name": "search_tools",
+        "description": "Searches the Arm Central Tool Registry for tools matching a query text.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Semantic query describing required tool capabilities"}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "run_code",
+        "description": "Executes Python orchestration code calling Arm tools in a sandboxed Monty REPL environment.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "script": {"type": "string", "description": "Python orchestration script invoking Arm tools"}
+            },
+            "required": ["script"]
+        }
+    }
+]
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Zero-Regex Multi-Language Tool Auto-Discovery Script")
@@ -35,9 +85,9 @@ def parse_args():
     parser.add_argument("--endpoint-url", default=PLATFORM_ENDPOINT_URL, help="Registry registration endpoint")
     parser.add_argument("--keycloak-token-url", default=KEYCLOAK_TOKEN_URL, help="Keycloak OAuth2 token endpoint")
     parser.add_argument("--client-id", default=KEYCLOAK_CLIENT_ID, help="Keycloak M2M Client ID")
-    parser.add_argument("--client-secret", default=os.getenv("KEYCLOAK_CLIENT_SECRET", ""), help="Optional static secret fallback")
     parser.add_argument("--mock", action="store_true", help="Force mock registration mode")
     parser.add_argument("--output-report", default="tools_discovery_report.json", help="Path to write output discovery manifest")
+    parser.add_argument("--output-mcp-spec", default="mcp.json", help="Path to write standard mcp.json spec")
     return parser.parse_args()
 
 
@@ -180,10 +230,48 @@ def discover_all_tools(roots: list[str]) -> list[dict]:
     return discovered_tools
 
 
+def construct_bootstrap_payload(discovered_tools: list[dict], target_domain: str = "cloud-ai") -> dict:
+    """
+    Constructs the 7-Tool Context-Aware Bootstrap Payload (~1,200 tokens):
+    - 3 Local Domain Tools (matching active workspace domain context)
+    - 2 Global Platform Tools (Arm Metis + Arm Performix)
+    - 2 CodeMode Meta-Tools (search_tools + run_code)
+    """
+    domain_tools = [t for t in discovered_tools if t.get("domain", "") == target_domain]
+    if len(domain_tools) < 3:
+        domain_tools.extend([t for t in discovered_tools if t not in domain_tools])
+
+    selected_local_tools = domain_tools[:3]
+    selected_global_tools = GLOBAL_PLATFORM_SERVERS[:2]
+
+    bootstrap_tools = []
+    bootstrap_tools.extend(selected_local_tools)
+    bootstrap_tools.extend(selected_global_tools)
+    bootstrap_tools.extend(CODEMODE_META_TOOLS)
+
+    return {
+        "target_domain_context": target_domain,
+        "total_bootstrap_tools": len(bootstrap_tools),
+        "estimated_prompt_tokens": 1200,
+        "bootstrap_tools": bootstrap_tools
+    }
+
+
+def generate_mcp_json_spec(endpoint_url: str) -> dict:
+    """Generates standard mcp.json specification for IDE auto-connection."""
+    return {
+        "mcpServers": {
+            "mvcp-gke-gateway": {
+                "url": endpoint_url,
+                "type": "sse",
+                "description": "Arm Central Federated AI Control Plane Gateway"
+            }
+        }
+    }
+
+
 def fetch_github_oidc_id_token(audience: str = "github-ci-runner") -> str:
-    """
-    Retrieves GitHub Actions short-lived OIDC ID token from runtime environment.
-    """
+    """Retrieves GitHub Actions short-lived OIDC ID token from runtime environment."""
     request_url = os.getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
     request_token = os.getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN") or os.getenv("ACTIONS_RUNTIME_TOKEN")
 
@@ -212,10 +300,7 @@ def fetch_github_oidc_id_token(audience: str = "github-ci-runner") -> str:
 
 
 def get_keycloak_access_token(token_url: str, client_id: str) -> str:
-    """
-    Exchanges GitHub Actions OIDC ID Token directly for a short-lived Keycloak OAuth2 JWT Access Token.
-    100% Secretless execution.
-    """
+    """Exchanges GitHub Actions OIDC ID Token directly for a short-lived Keycloak OAuth2 JWT Access Token."""
     github_oidc_token = fetch_github_oidc_id_token(audience=client_id)
     if not github_oidc_token:
         print("[Keycloak] Notice: Not running in GitHub Actions OIDC context.", file=sys.stderr)
@@ -262,14 +347,28 @@ def main():
         dom = tool.get("domain", "general")
         domain_manifests.setdefault(dom, []).append(tool)
 
+    active_domain = "cloud-ai" if "cloud-ai" in domain_manifests else (list(domain_manifests.keys())[0] if domain_manifests else "general")
+    bootstrap_payload = construct_bootstrap_payload(discovered_tools, target_domain=active_domain)
+
+    # Structured Developer Local Visibility Manifest
     summary_output = {
+        "workspace_context": active_domain,
+        "bootstrap_payload": bootstrap_payload,
+        "local_workspace_tools": [t.get("name") for t in discovered_tools],
+        "global_platform_servers": [s.get("name") for s in GLOBAL_PLATFORM_SERVERS],
         "total_tools_discovered": len(discovered_tools),
         "domains": list(domain_manifests.keys()),
         "tools": discovered_tools
     }
 
+    # Write tools_discovery_report.json
     Path(args.output_report).write_text(json.dumps(summary_output, indent=2), encoding="utf-8")
     print(f"Discovered {len(discovered_tools)} MCP tools across {len(domain_manifests)} domain(s). Report saved to '{args.output_report}'.")
+
+    # Write mcp.json (Standard IDE Spec)
+    mcp_spec = generate_mcp_json_spec(args.endpoint_url)
+    Path(args.output_mcp_spec).write_text(json.dumps(mcp_spec, indent=2), encoding="utf-8")
+    print(f"Generated standard IDE connection spec at '{args.output_mcp_spec}'.")
 
     # Explicit Dry-Run / Mock Mode
     if args.mock:

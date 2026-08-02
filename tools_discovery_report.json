@@ -1,0 +1,664 @@
+{
+  "workspace_context": "/",
+  "bootstrap_payload": {
+    "target_domain_context": "/",
+    "total_bootstrap_tools": 7,
+    "estimated_prompt_tokens": 1200,
+    "bootstrap_tools": [
+      {
+        "name": "inspect_torch_dynamo_backend",
+        "description": "Traces PyTorch Dynamo Guard failures and outputs lowering recommendations for SVE bf16/int8 MMLA primitives.",
+        "domain": "/",
+        "language": "python",
+        "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/mcp_tools/cloud_ai/torch_dynamo_neoverse_inspector/inspector.py",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "script_path": {
+              "type": "str",
+              "description": "Parameter script_path"
+            },
+            "opt_level": {
+              "type": "int",
+              "description": "Parameter opt_level"
+            }
+          }
+        }
+      },
+      {
+        "name": "query_arm_hardware_rag",
+        "description": "Queries the Arm Hardware Knowledge Base Vector DB to retrieve Technical Reference Manuals (TRMs), SVE2 guidelines, and Silicon Errata.",
+        "domain": "/",
+        "language": "python",
+        "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/mcp_tools/cloud_ai/arm_trm_vector_rag_retriever/retriever.py",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query_text": {
+              "type": "str",
+              "description": "Parameter query_text"
+            },
+            "top_k": {
+              "type": "int",
+              "description": "Parameter top_k"
+            }
+          }
+        }
+      },
+      {
+        "name": "analyze_kv_cache_allocator",
+        "description": "Evaluates vLLM page table structures on Neoverse V2/N2 architectures and checks for cross-NUMA socket cache line bouncing.",
+        "domain": "/",
+        "language": "python",
+        "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/mcp_tools/cloud_ai/vllm_arm_kv_cache_allocator_analyzer/analyzer.py",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "config_file": {
+              "type": "str",
+              "description": "Parameter config_file"
+            },
+            "numa_nodes": {
+              "type": "int",
+              "description": "Parameter numa_nodes"
+            },
+            "block_size": {
+              "type": "int",
+              "description": "Parameter block_size"
+            }
+          }
+        }
+      },
+      {
+        "name": "arm_official_mcp_server",
+        "description": "Arm Official Documentation & Cloud Migration Server (developer.arm.com)",
+        "server_url": "https://developer.arm.com/mcp",
+        "category": "Documentation & Migration"
+      },
+      {
+        "name": "arm_performix_telemetry_engine",
+        "description": "Arm Performix Live Hardware Telemetry Engine (SPE, Cache, Mali GPU)",
+        "server_url": "https://performix.arm.internal/v1/telemetry",
+        "category": "Hardware Telemetry"
+      },
+      {
+        "name": "search_tools",
+        "description": "Searches the Arm Central Tool Registry for tools matching a query text.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Semantic query describing required tool capabilities"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "run_code",
+        "description": "Executes Python orchestration code calling Arm tools in a sandboxed Monty REPL environment.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string",
+              "description": "Python orchestration script invoking Arm tools"
+            }
+          },
+          "required": [
+            "script"
+          ]
+        }
+      }
+    ]
+  },
+  "local_workspace_tools": [
+    "inspect_torch_dynamo_backend",
+    "query_arm_hardware_rag",
+    "analyze_kv_cache_allocator",
+    "rewrite_onnx_subgraph",
+    "optimize_matrix_layout",
+    "mcp__profile_cache_line_hits",
+    "android_nnapi_thread_profiler",
+    "kleidiai_depthwise_conv2d",
+    "ros2_arm_zenoh_latency_profiler",
+    "disassemble_sve_intrinsics",
+    "arm_spe_event_profiler",
+    "ethos_u_npu_cycle_estimator",
+    "go_arm_chi_bus_monitor",
+    "profile_mali_gpu_opencl",
+    "arm_sve2_matmul_tile_kernel",
+    "cmsis_nn_memory_footprint_calc",
+    "graviton_k8s_node_affinity_optimizer",
+    "graalvm_arm64_vector_checker",
+    "arm_cca_realm_attestation_verifier",
+    "etm_trace_fast_analyzer",
+    "rust_sve2_vector_dot_product",
+    "analyze_neoverse_sve_pipeline"
+  ],
+  "global_platform_servers": [
+    "arm_official_mcp_server",
+    "arm_performix_telemetry_engine",
+    "arm_metis_layout_optimizer"
+  ],
+  "total_tools_discovered": 22,
+  "domains": [
+    "/"
+  ],
+  "tools": [
+    {
+      "name": "inspect_torch_dynamo_backend",
+      "description": "Traces PyTorch Dynamo Guard failures and outputs lowering recommendations for SVE bf16/int8 MMLA primitives.",
+      "domain": "/",
+      "language": "python",
+      "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/mcp_tools/cloud_ai/torch_dynamo_neoverse_inspector/inspector.py",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_path": {
+            "type": "str",
+            "description": "Parameter script_path"
+          },
+          "opt_level": {
+            "type": "int",
+            "description": "Parameter opt_level"
+          }
+        }
+      }
+    },
+    {
+      "name": "query_arm_hardware_rag",
+      "description": "Queries the Arm Hardware Knowledge Base Vector DB to retrieve Technical Reference Manuals (TRMs), SVE2 guidelines, and Silicon Errata.",
+      "domain": "/",
+      "language": "python",
+      "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/mcp_tools/cloud_ai/arm_trm_vector_rag_retriever/retriever.py",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query_text": {
+            "type": "str",
+            "description": "Parameter query_text"
+          },
+          "top_k": {
+            "type": "int",
+            "description": "Parameter top_k"
+          }
+        }
+      }
+    },
+    {
+      "name": "analyze_kv_cache_allocator",
+      "description": "Evaluates vLLM page table structures on Neoverse V2/N2 architectures and checks for cross-NUMA socket cache line bouncing.",
+      "domain": "/",
+      "language": "python",
+      "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/mcp_tools/cloud_ai/vllm_arm_kv_cache_allocator_analyzer/analyzer.py",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "config_file": {
+            "type": "str",
+            "description": "Parameter config_file"
+          },
+          "numa_nodes": {
+            "type": "int",
+            "description": "Parameter numa_nodes"
+          },
+          "block_size": {
+            "type": "int",
+            "description": "Parameter block_size"
+          }
+        }
+      }
+    },
+    {
+      "name": "rewrite_onnx_subgraph",
+      "description": "Reads ONNX IR, locates unoptimized MatMul / Conv nodes, and replaces them with custom operators mapped to KleidiAI SME micro-kernels.",
+      "domain": "/",
+      "language": "python",
+      "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/mcp_tools/mobile_ai/onnx_to_kleidiai_subgraph_rewriter/rewriter.py",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "model_path": {
+            "type": "str",
+            "description": "Parameter model_path"
+          },
+          "target_isa": {
+            "type": "str",
+            "description": "Parameter target_isa"
+          },
+          "precision": {
+            "type": "str",
+            "description": "Parameter precision"
+          }
+        }
+      }
+    },
+    {
+      "name": "optimize_matrix_layout",
+      "description": "Optimizes memory layout for Arm NEON SIMD matrix operations.",
+      "domain": "/",
+      "language": "python",
+      "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/workloads/_template/tools_example.py",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "matrix_rows": {
+            "type": "int",
+            "description": "Parameter matrix_rows"
+          },
+          "matrix_cols": {
+            "type": "int",
+            "description": "Parameter matrix_cols"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp__profile_cache_line_hits",
+      "description": "Profiles L1/L2 cache hit ratios for Neoverse core execution.",
+      "domain": "/",
+      "language": "python",
+      "source_file": "/Users/markmcnaught/Repos/arm-developer-workspace/workloads/_template/tools_example.py",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "cache_size_kb": {
+            "type": "int",
+            "description": "Parameter cache_size_kb"
+          }
+        }
+      }
+    },
+    {
+      "name": "android_nnapi_thread_profiler",
+      "description": "Parses Android JNI runtime traces, mapping NNAPI execution threads against DynamIQ cluster migrations to detect core thrashing.",
+      "language": "java",
+      "source_file": "mcp_tools/mobile_ai/android_nnapi_thread_profiler/Profiler.java",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "trace_file": {
+            "type": "string",
+            "description": "Path to Systrace / ATrace JNI log file"
+          },
+          "cluster_type": {
+            "type": "string",
+            "enum": [
+              "big.LITTLE",
+              "DynamIQ"
+            ],
+            "description": "Target CPU core topology"
+          }
+        },
+        "required": [
+          "trace_file",
+          "cluster_type"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "kleidiai_depthwise_conv2d",
+      "description": "Optimizes 2D Depthwise Separable Convolution using Arm KleidiAI micro-kernels.",
+      "language": "cpp",
+      "source_file": "workloads/_template/tools_example.cpp",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "width": {
+            "type": "integer",
+            "description": "Image width in pixels"
+          },
+          "height": {
+            "type": "integer",
+            "description": "Image height in pixels"
+          },
+          "channels": {
+            "type": "integer",
+            "description": "Number of input channels"
+          }
+        }
+      },
+      "domain": "/"
+    },
+    {
+      "name": "ros2_arm_zenoh_latency_profiler",
+      "description": "Captures ROS 2 DDS/Zenoh transport performance metrics across Arm edge nodes to detect inter-process communication latency spikes.",
+      "language": "go",
+      "source_file": "mcp_tools/physical_ai/ros2_arm_zenoh_latency_profiler/latency.go",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic_name": {
+            "type": "string",
+            "description": "ROS 2 topic name to monitor"
+          },
+          "duration_sec": {
+            "type": "integer",
+            "description": "Profiling duration in seconds"
+          }
+        },
+        "required": [
+          "topic_name",
+          "duration_sec"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "disassemble_sve_intrinsics",
+      "description": "Uses capstone-rs to disassemble target ELF sections, verifying vector-length agnostic (VLA) instruction usage and flagging hardcoded vector-width assumptions.",
+      "language": "rust",
+      "source_file": "mcp_tools/cloud_ai/disassemble_sve_intrinsics/disasm.rs",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "elf_path": {
+            "type": "string",
+            "description": "Path to binary ELF file"
+          },
+          "symbol_name": {
+            "type": "string",
+            "description": "Symbol or function name to disassemble"
+          }
+        },
+        "required": [
+          "elf_path",
+          "symbol_name"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "arm_spe_event_profiler",
+      "description": "Interfaces with the Platform Gateway's Performix REST endpoints to stream hardware Statistical Profiling Extension (SPE) events.",
+      "language": "c",
+      "source_file": "mcp_tools/cloud_ai/arm_spe_event_profiler/spe.c",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workload_pid": {
+            "type": "integer",
+            "description": "Target process ID to profile"
+          },
+          "sample_period": {
+            "type": "integer",
+            "description": "SPE sampling period in cycles"
+          }
+        },
+        "required": [
+          "workload_pid",
+          "sample_period"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "ethos_u_npu_cycle_estimator",
+      "description": "Executes cycle-accurate simulation using Ethos-U Core Driver libraries to estimate MAC unit utilization and SRAM bank conflict counts.",
+      "language": "cpp",
+      "source_file": "mcp_tools/physical_ai/ethos_u_npu_cycle_estimator/ethos.cpp",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tflite_model_path": {
+            "type": "string",
+            "description": "Path to quantized .tflite model file"
+          },
+          "npu_config": {
+            "type": "string",
+            "enum": [
+              "ethos-u55-256",
+              "ethos-u65-512"
+            ],
+            "description": "Ethos-U hardware configuration variant"
+          }
+        },
+        "required": [
+          "tflite_model_path",
+          "npu_config"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "go_arm_chi_bus_monitor",
+      "description": "Profiles AXI/CHI bus handshake latency on Arm Neoverse interconnects.",
+      "language": "go",
+      "source_file": "workloads/_template/tools_example.go",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "interconnectID": {
+            "type": "string",
+            "description": "Interconnect fabric identifier"
+          },
+          "sampleRateHz": {
+            "type": "integer",
+            "description": "Sampling frequency in Hz"
+          }
+        }
+      },
+      "domain": "/"
+    },
+    {
+      "name": "profile_mali_gpu_opencl",
+      "description": "Links against Mali OpenCL driver vendor SDK to capture arithmetic intensity, tile memory spills, and texture branch mispredictions.",
+      "language": "cpp",
+      "source_file": "mcp_tools/mobile_ai/profile_mali_gpu_opencl/mali.cpp",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "kernel_source": {
+            "type": "string",
+            "description": "Path to OpenCL .cl kernel source file"
+          },
+          "workgroup_size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "3D workgroup execution dimensions"
+          }
+        },
+        "required": [
+          "kernel_source",
+          "workgroup_size"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "arm_sve2_matmul_tile_kernel",
+      "description": "Hand-crafted Arm SVE2 256-bit Vector Outer Product GEMM Kernel.",
+      "language": "assembly",
+      "source_file": "workloads/_template/tools_example.S",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tile_size": {
+            "type": "integer",
+            "description": "Matrix tile size in bytes"
+          }
+        }
+      },
+      "domain": "/"
+    },
+    {
+      "name": "cmsis_nn_memory_footprint_calc",
+      "description": "Parses Arm Cortex-M ELF headers, evaluating .data, .bss, and CMSIS-NN scratchpad memory buffer constraints against Tightly Coupled Memory (TCM) limits.",
+      "language": "c",
+      "source_file": "mcp_tools/physical_ai/cmsis_nn_memory_footprint_calc/cmsis.c",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "elf_binary": {
+            "type": "string",
+            "description": "Path to Cortex-M firmware ELF file"
+          },
+          "tcm_size_kb": {
+            "type": "integer",
+            "description": "Tightly Coupled Memory capacity in kilobytes"
+          }
+        },
+        "required": [
+          "elf_binary",
+          "tcm_size_kb"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "graviton_k8s_node_affinity_optimizer",
+      "description": "Audits Kubernetes deployment specs with k8s.io/client-go to inject optimal CPU pinning, thread affinity, and NUMA node topology constraints for AWS Graviton nodes.",
+      "language": "go",
+      "source_file": "mcp_tools/cloud_ai/graviton_k8s_node_affinity_optimizer/affinity.go",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "manifest_path": {
+            "type": "string",
+            "description": "Path to Kubernetes YAML manifest"
+          },
+          "target_graviton_gen": {
+            "type": "integer",
+            "enum": [
+              3,
+              4
+            ],
+            "description": "AWS Graviton generation (3 or 4)"
+          }
+        },
+        "required": [
+          "manifest_path",
+          "target_graviton_gen"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "graalvm_arm64_vector_checker",
+      "description": "Analyzes GraalVM JIT assembly output, confirming that high-throughput Java streams compile into native SVE/SVE2 vector instructions.",
+      "language": "java",
+      "source_file": "mcp_tools/cloud_ai/graalvm_arm64_vector_checker/Checker.java",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "jar_path": {
+            "type": "string",
+            "description": "Path to target Java JAR file"
+          },
+          "class_name": {
+            "type": "string",
+            "description": "Fully qualified class name to inspect"
+          }
+        },
+        "required": [
+          "jar_path",
+          "class_name"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "arm_cca_realm_attestation_verifier",
+      "description": "Low-level assembly driver executing SMC (Secure Monitor Call) primitives to read Arm CCA Realm Management Monitor (RMM) registers and return cryptographic attestation tokens.",
+      "language": "assembly",
+      "source_file": "mcp_tools/security/arm_cca_realm_attestation_verifier/verifier.S",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "realm_id": {
+            "type": "string",
+            "description": "Arm CCA Realm Identifier"
+          },
+          "attestation_challenge": {
+            "type": "string",
+            "description": "Cryptographic nonce / challenge string"
+          }
+        },
+        "required": [
+          "realm_id",
+          "attestation_challenge"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "etm_trace_fast_analyzer",
+      "description": "Zero-copy parser built on nom / lock-free streams decoding Arm Embedded Trace Macrocell (ETM) packet streams for ISO 26262 automotive safety paths.",
+      "language": "rust",
+      "source_file": "mcp_tools/physical_ai/etm_trace_fast_analyzer/etm.rs",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "trace_bin_path": {
+            "type": "string",
+            "description": "Path to binary ETM trace file"
+          },
+          "max_latency_ns": {
+            "type": "integer",
+            "description": "Maximum allowable latency threshold in nanoseconds"
+          }
+        },
+        "required": [
+          "trace_bin_path",
+          "max_latency_ns"
+        ]
+      },
+      "domain": "/"
+    },
+    {
+      "name": "rust_sve2_vector_dot_product",
+      "description": "Computes dot product using Arm SVE2 256-bit vector registers.",
+      "language": "rust",
+      "source_file": "workloads/_template/tools_example.rs",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "vec_a_len": {
+            "type": "integer",
+            "description": "Length of vector A"
+          },
+          "vec_b_len": {
+            "type": "integer",
+            "description": "Length of vector B"
+          }
+        }
+      },
+      "domain": "/"
+    },
+    {
+      "name": "analyze_neoverse_sve_pipeline",
+      "description": "Uses LLVM-MCA C++ API headers directly to calculate instruction throughput, register pressures, and vector execution pipe stalls on Neoverse cores.",
+      "language": "cpp",
+      "source_file": "mcp_tools/cloud_ai/analyze_neoverse_sve_pipeline/pipeline.cpp",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "assembly_file": {
+            "type": "string",
+            "description": "Path to target assembly file (.s / .S)"
+          },
+          "core_target": {
+            "type": "string",
+            "enum": [
+              "neoverse-v2",
+              "neoverse-n2"
+            ],
+            "description": "Target Neoverse micro-architecture"
+          }
+        },
+        "required": [
+          "assembly_file",
+          "core_target"
+        ]
+      },
+      "domain": "/"
+    }
+  ]
+}
