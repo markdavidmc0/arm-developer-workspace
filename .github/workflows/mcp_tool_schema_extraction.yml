@@ -4,13 +4,25 @@ name: MCP Tool Schema Extraction & Gateway Registration
 # CENTRAL WORKFLOW CONFIGURATION (Configuration-as-Code)
 # ─────────────────────────────────────────────────────────────
 env:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.12"
 
 on:
   push:
     branches: [ main, master ]
+    paths:
+      - 'mcp_tools/**'
+      - 'workloads/**'
+      - 'scripts/build_all_tool_schemas.py'
+      - 'scripts/ci_auto_discover_tools.py'
+      - '.github/workflows/mcp_tool_schema_extraction.yml'
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'mcp_tools/**'
+      - 'workloads/**'
+      - 'scripts/build_all_tool_schemas.py'
+      - 'scripts/ci_auto_discover_tools.py'
+      - '.github/workflows/mcp_tool_schema_extraction.yml'
   workflow_dispatch:
 
 permissions:
@@ -21,7 +33,7 @@ jobs:
   # STAGE 1: Parallel Build & Schema Extraction Job Matrix (Fan-Out)
   build-and-extract-schemas:
     name: Extract Schemas (${{ matrix.language }})
-    runs-on: arm-developer-workspace-runner
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +55,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -63,7 +75,7 @@ jobs:
   aggregate-and-register:
     name: Aggregate & Register Tools
     needs: build-and-extract-schemas
-    runs-on: arm-developer-workspace-runner
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
@@ -71,7 +83,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
